@@ -1,0 +1,33 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const { title, description = 'Diccionario interactivo del dialecto quiteño.' } = Astro.props;
+---
+
+<!doctype html>
+<html lang="es" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="description" content={description} />
+    <title>{title} | Lector Quiteño</title>
+  </head>
+  <body>
+    <slot />
+    <script is:inline>
+      // Restore theme from localStorage
+      (function() {
+        const saved = localStorage.getItem('lq-theme');
+        if (saved) {
+          document.documentElement.setAttribute('data-theme', saved);
+        }
+      })();
+    </script>
+  </body>
+</html>
