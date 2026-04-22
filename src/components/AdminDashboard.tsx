@@ -41,9 +41,9 @@ export default function AdminDashboard({ initialWords, initialQuestions }: Props
       setIsAdmin(session?.user?.user_metadata?.is_admin || false);
       setLoading(false);
       if (session?.user?.user_metadata?.is_admin) {
-        // Solo cargamos si no tenemos datos iniciales para evitar que el fallo de CORS en cliente borre los datos del servidor
-        if (words.length === 0) loadWords();
-        if (questions.length === 0) loadQuestions();
+        // Solo cargamos usuarios (Supabase directo)
+        // Las palabras y preguntas ya vienen por props y no queremos re-pedirlas 
+        // si el API externo falla por CORS en el cliente.
         loadUsers();
       }
     });
@@ -86,62 +86,40 @@ export default function AdminDashboard({ initialWords, initialQuestions }: Props
     if (!session?.access_token) return;
     if (!window.confirm(`¿Seguro que quieres ${action === 'approve' ? 'aprobar' : 'eliminar'} este término, veci?`)) return;
 
-    try {
-      const url = `https://lectorquite-o.vercel.app/api/v1/lexicon/words/${slug}${action === 'approve' ? '/approve' : ''}`;
-      const method = action === 'approve' ? 'PUT' : 'DELETE';
-      const resp = await fetch(url, {
-        method: method,
-        headers: { 'Authorization': `Bearer ${session.access_token}` },
-      });
-      if (resp.ok) {
-        alert("¡Operación exitosa!");
-        loadWords();
-      }
-    } catch { alert('Error de conexión.'); }
+    const ok = action === 'approve' 
+      ? await approveWord(slug, session.access_token)
+      : await deleteWord(slug, session.access_token);
+    
+    if (ok) {
+      alert("¡Operación exitosa!");
+      loadWords();
+    } else {
+      alert("Error al procesar la solicitud.");
+    }
   };
 
   const handleDeleteQuestion = async (id: number) => {
     if (!session?.access_token) return;
     if (!window.confirm(`¿Seguro que quieres eliminar esta pregunta?`)) return;
-    try {
-      const resp = await fetch(`https://lectorquite-o.vercel.app/api/v1/lexicon/quiz/questions/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${session.access_token}` },
-      });
-      if (resp.ok) {
-        alert("¡Pregunta eliminada!");
-        loadQuestions();
-      } else {
-        alert("Error al eliminar la pregunta. (Verifica si tu API tiene este endpoint)");
-      }
-    } catch { alert('Error de conexión.'); }
+    const ok = await deleteQuizQuestion(id, session.access_token);
+    if (ok) {
+      alert("¡Pregunta eliminada!");
+      loadQuestions();
+    } else {
+      alert("Error al eliminar.");
+    }
   };
 
   const handleSaveQuestion = async () => {
     if (!session?.access_token) return;
-    try {
-      const method = editingQuestion.id ? 'PUT' : 'POST';
-      const url = editingQuestion.id 
-        ? `https://lectorquite-o.vercel.app/api/v1/lexicon/quiz/questions/${editingQuestion.id}`
-        : `https://lectorquite-o.vercel.app/api/v1/lexicon/quiz/questions`;
-        
-      const resp = await fetch(url, {
-        method,
-        headers: { 
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(editingQuestion)
-      });
-
-      if (resp.ok) {
-        alert("¡Pregunta guardada correctamente!");
-        setQuestionModalOpen(false);
-        loadQuestions();
-      } else {
-        alert("Error al guardar. La API externa podría no soportar esta acción o requieres permisos.");
-      }
-    } catch { alert('Error de conexión.'); }
+    const ok = await saveQuizQuestion(editingQuestion, session.access_token);
+    if (ok) {
+      alert("¡Pregunta guardada correctamente!");
+      setQuestionModalOpen(false);
+      loadQuestions();
+    } else {
+      alert("Error al guardar. La API externa podría no soportar esta acción o requieres permisos.");
+    }
   };
 
   if (loading) return (

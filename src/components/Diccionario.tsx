@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { type WordResponse, type WordPaged, searchWordsProxy } from '../services/api';
+import { type WordResponse, type WordPaged, fetchWords, voteWord } from '../services/api';
+import { getSupabase } from '../services/supabase';
 import { Search, Volume2, ThumbsUp, MessageSquare, Star, RotateCcw } from 'lucide-react';
 import ProponerPalabra from './ProponerPalabra';
 
@@ -23,7 +23,7 @@ export default function Diccionario({ initialData, limit }: Props) {
 
     const timer = setTimeout(async () => {
       setLoading(true);
-      const result = await searchWordsProxy(search);
+      const result = await fetchWords(0, 100, search);
       setData(result);
       setLoading(false);
     }, 400);
@@ -157,10 +157,25 @@ function WordCard({ word: w, delay }: { word: WordResponse; delay: number }) {
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 }}>
         <div style={{ display: 'flex', gap: 10 }}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: '#22c55e' }}>
+          <button 
+            onClick={async () => {
+              const sb = getSupabase();
+              if (!sb) return;
+              const { data: { session } } = await sb.auth.getSession();
+              if (!session) { alert("¡Inicia sesión para votar, veci!"); return; }
+              const ok = await voteWord(w.slug, 1, session.access_token);
+              if (ok) alert("¡Voto registrado! 🎉");
+              else alert("Ya has votado o hubo un error.");
+            }}
+            style={{ 
+              display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, 
+              color: '#22c55e', background: 'rgba(34,197,94,0.1)', border: 'none', 
+              padding: '6px 12px', borderRadius: 8, cursor: 'pointer' 
+            }}
+          >
             <ThumbsUp size={13} /> {w.vote_count || 0}
-          </span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: 'var(--text-muted)' }}>
+          </button>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', padding: '6px 0' }}>
             <MessageSquare size={13} /> {w.comment_count || 0}
           </span>
         </div>
