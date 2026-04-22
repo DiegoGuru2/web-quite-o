@@ -41,8 +41,9 @@ export default function AdminDashboard({ initialWords, initialQuestions }: Props
       setIsAdmin(session?.user?.user_metadata?.is_admin || false);
       setLoading(false);
       if (session?.user?.user_metadata?.is_admin) {
-        loadWords();
-        loadQuestions();
+        // Solo cargamos si no tenemos datos iniciales para evitar que el fallo de CORS en cliente borre los datos del servidor
+        if (words.length === 0) loadWords();
+        if (questions.length === 0) loadQuestions();
         loadUsers();
       }
     });
