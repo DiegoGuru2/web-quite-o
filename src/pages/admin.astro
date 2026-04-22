@@ -3,6 +3,19 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import Navbar from '../components/Navbar';
 import AdminDashboard from '../components/AdminDashboard';
 import { Shield } from 'lucide-react';
+
+const API = 'https://lectorquite-o.vercel.app/api/v1';
+let initialWords = { total: 0, items: [] };
+let initialQuestions: any[] = [];
+
+try {
+  const [wRes, qRes] = await Promise.all([
+    fetch(`${API}/lexicon/words?skip=0&limit=100`),
+    fetch(`${API}/lexicon/quiz/questions`)
+  ]);
+  if (wRes.ok) initialWords = await wRes.json();
+  if (qRes.ok) initialQuestions = await qRes.json();
+} catch(e) {}
 ---
 
 <BaseLayout 
@@ -30,7 +43,7 @@ import { Shield } from 'lucide-react';
         </p>
      </header>
      
-     <AdminDashboard client:load />
+     <AdminDashboard client:load initialWords={initialWords} initialQuestions={initialQuestions} />
   </main>
 
   <footer style="padding: 48px 0; border-top: 1px solid var(--border); background: var(--bg-secondary); margin-top: 80px;">
